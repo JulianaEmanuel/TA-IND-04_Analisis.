@@ -1,0 +1,218 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage[style=ieee,backend=biber]{biblatex}
+
+\addbibresource{references.bib}
+\hypersetup{colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue}
+
+\begin{document}
+
+% ==========================================
+% SECCIÓN 1: PORTADA INDEPENDIENTE
+% ==========================================
+\begin{titlepage}
+    \centering
+    \vspace*{0.2cm}
+    
+    {\Large \textbf{UNIVERSIDAD TÉCNICA ESTATAL DE QUEVEDO}} \\[0.3cm]
+    {\large \textbf{FACULTAD DE CIENCIAS DE LA COMPUTACIÓN}} \\[0.2cm]
+    {\large \textbf{CARRERA DE INGENIERÍA DE SOFTWARE}} \\[0.6cm]
+    
+    \rule{\linewidth}{1.5pt} \\[0.8cm]
+    
+    {\LARGE \textbf{INFORME TÉCNICO INDIVIDUAL}} \\[0.4cm]
+    {\Large \textbf{CÓDIGO DE ACTIVIDAD: TA-IND-04}} \\[0.5cm]
+    {\large \textit{Análisis de Rendimiento Paralelo aplicado al Proyecto Fin de Curso}} \\[0.8cm]
+    
+    \rule{\linewidth}{1.0pt} \\[1.0cm]
+    
+    \vfill
+    
+    \begin{raggedright}
+    \large
+    \begin{tabular}{ll}
+        \textbf{Asignatura:} & Aplicaciones Distribuidas (ISR-701) -- Unidad 4 \\[0.25cm]
+        \textbf{Docente Responsable:} & Gleiston C. Guerrero-Ulloa, M.Sc. \\[0.25cm]
+        \textbf{Estudiante:} & Juliana [Apellido] \\[0.25cm]
+        \textbf{Equipo PE-U4 de Origen:} & Equipo BCEL \\[0.25cm]
+        \textbf{PFC de Referencia:} & BCEL -- SGA Escuela Provincias Unidas \\[0.25cm]
+        \textbf{Componente del PFC:} & Módulo de Matrículas / Registro de Estudiantes \\[0.25cm]
+        \textbf{Transformación Declarada:} & T1 -- Filtrado y Selección de Datos Masivos \\[0.25cm]
+        \textbf{Repositorio Individual:} & \url{https://github.com/Juliana[Usuario]/ta-ind-04-[apellido]} \\[0.25cm]
+        \textbf{Commit SHA de Origen:} & \texttt{3711eda} \\[0.25cm]
+    \end{tabular}
+    \end{raggedright}
+    
+    \vfill
+    
+    {\large \textbf{Quevedo -- Ecuador}} \\[0.2cm]
+    {\large \textbf{Semana 15 | Período Académico 2026-2027 PPA}}
+    \vspace*{0.2cm}
+\end{titlepage}
+
+\clearpage
+
+% ==========================================
+% SECCIÓN 2: INTRODUCCIÓN Y CONTEXTO
+% ==========================================
+\section{Introducción y Contexto}
+El presente informe técnico individual realiza un análisis cuantitativo y crítico sobre el rendimiento y la aceleración paralela de un pipeline de procesamiento de datos evaluado en la práctica \texttt{GA-SUM-05 / PE-U4}. El objetivo principal es evaluar la eficiencia computacional del motor distribuido Apache Spark frente al enfoque monolítico en pandas, fundamentando la propuesta de integración arquitectural en el Proyecto Fin de Curso (PFC) \cite{zaharia2016}.
+
+Los datos experimentales primarios provienen del repositorio oficial del \textbf{Equipo BCEL} (\url{https://github.com/BedonViteri/pe-u4-spark-BCEL}), bajo el identificador de commit SHA \texttt{3711eda}. La experimentación se ejecutó en la plataforma Google Colab empleando PySpark 3.5.0 en un entorno de $4$ ejecutores distribuidos sobre un conjunto de datos real de $10.6$ millones de registros.
+
+El dominio del PFC corresponde al \textbf{BCEL -- SGA Escuela Provincias Unidas}, enfocándose en el \textbf{Módulo de Matrículas y Registro de Estudiantes}. Este componente gestiona las consultas transaccionales de alumnos activos, filtrado de períodos lectivos y validación de requisitos de inscripción.
+
+% ==========================================
+% SECCIÓN 3: ANÁLISIS PROPIO DE LOS RESULTADOS DE SPEEDUP
+% ==========================================
+\section{Análisis Propio de los Resultados de Speedup}
+\label{sec:analisis_speedup}
+
+En estricto cumplimiento de la regla de individualidad, este informe declara como objeto de análisis en profundidad la \textbf{Transformación T1: Filtrado y Selección de Datos Masivos}. En el sistema académico, T1 aísla registros de matriculación activos y depura expedientes según criterios de período lectivo.
+
+\subsection{Tabla de Datos Base (Plantilla Anexo A)}
+La Tabla \ref{tab:datos_base} presenta los tiempos medianos obtenidos en 5 repeticiones independientes sobre $10.6$ millones de registros, extraídos del commit \texttt{3711eda}.
+
+\begin{table}[htbp]
+\centering
+\caption{Tabla de datos base de tiempos de ejecución y speedup ($N=4$ ejecutores)}
+\label{tab:datos_base}
+\begin{tabular}{l l S[table-format=2.2] S[table-format=1.2] S[table-format=1.2]}
+\toprule
+\textbf{Id.} & \textbf{Transformación} & {\textbf{$T_{\text{pandas}}$ (\si{\second})}} & {\textbf{$T_{\text{spark}}$ (\si{\second})}} & {\textbf{Speedup ($S$)}} \\
+\midrule
+\textbf{T1} & \textbf{Filtrado y selección (Foco)} & \textbf{12.45} & \textbf{2.10} & \textbf{5.93} \\
+T2 & Agrupación y agregación & 18.30 & 3.45 & 5.30 \\
+T3 & Join de dos DataFrames & 45.10 & 9.20 & 4.90 \\
+T4 & Columna derivada compleja & 15.80 & 2.80 & 5.64 \\
+T5 & Ordenamiento y top-N & 8.90 & 1.95 & 4.56 \\
+\midrule
+\multicolumn{5}{l}{\textbf{Escalado de la transformación foco (T1):}} \\
+& Foco con $N=1$ ejecutor & 12.45 & 5.80 & 2.15 \\
+& Foco con $N=2$ ejecutores & 12.45 & 3.60 & 3.46 \\
+& Foco con $N=4$ ejecutores & 12.45 & 2.10 & 5.93 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Evaluación del Speedup frente a la Ley de Amdahl}
+La aceleración teórica de un sistema paralelo se rige por la Ley de Amdahl \cite{amdahl1967}:
+
+\begin{equation}
+S(N) = \frac{1}{(1-p) + \frac{p}{N}}, \quad S_{\text{máx}} = \lim_{N \to \infty} S(N) = \frac{1}{1-p}
+\label{eq:amdahl}
+\end{equation}
+
+Para la transformación T1 con una fracción paralelizable estimada $p = 0.90$ y $N = 4$ ejecutores, la aceleración teórica estimada por \eqref{eq:amdahl} es:
+\begin{equation}
+S_{\text{teórico}}(4) = \frac{1}{(1 - 0.90) + \frac{0.90}{4}} = \frac{1}{0.10 + 0.225} \approx 3.08
+\end{equation}
+
+La desviación relativa $\Delta$ entre el speedup medido ($S_{\text{med}} = 5.93$) y el teórico predicho ($S_{\text{teo}} = 3.08$) se cuantifica mediante:
+\begin{equation}
+\Delta = \frac{S_{\text{med}} - S_{\text{teo}}}{S_{\text{teo}}} \times 100\% = \frac{5.93 - 3.08}{3.08} \times 100\% = +92.53\%
+\end{equation}
+
+\textbf{Respuesta a la Pregunta Orientadora 1:} Los resultados experimentales **no coinciden de forma estricta** con la predicción lineal de Amdahl, superándola en un $+92.53\%$. Esta super-aceleración aparente ocurre porque T1 es una transformación estrecha (\textit{narrow transformation}) que no requiere intercambio de datos en red (\textit{shuffle}). Spark evalúa los filtros mediante evaluación perezosa (\textit{lazy evaluation}) y empuje de predicados (\textit{predicate pushdown}), descartando particiones en memoria, mientras que pandas procesa el conjunto completo de datos secuencialmente saturando la memoria caché \cite{ahmed2020}.
+
+% ==========================================
+% SECCIÓN 4: DIAGNÓSTICO DE LA FRACCIÓN NO ESCALABLE
+% ==========================================
+\section{Diagnóstico de la Fracción No Escalable}
+
+Para evaluar la sobrecarga introducida por el motor distribuido frente a los límites del algoritmo, se formaliza la Métrica de Karp-Flatt \cite{karp1990}:
+
+\begin{equation}
+e = \frac{\frac{1}{S} - \frac{1}{N}}{1 - \frac{1}{N}}, \quad N > 1
+\label{eq:karp_flatt}
+\end{equation}
+
+Acompañada por la eficiencia del paralelismo $E(N)$:
+\begin{equation}
+E(N) = \frac{S(N)}{N}
+\label{eq:eficiencia}
+\end{equation}
+
+Sustituyendo los valores de escalado medidos para T1 en $N=2$ ($S_2 = 3.46$) y $N=4$ ($S_4 = 5.93$) en la ecuación \eqref{eq:karp_flatt}:
+\begin{align}
+e(2) &= \frac{\frac{1}{3.46} - \frac{1}{2}}{1 - \frac{1}{2}} = \frac{0.2890 - 0.5000}{0.5000} = -0.4220 \\
+e(4) &= \frac{\frac{1}{5.93} - \frac{1}{4}}{1 - \frac{1}{4}} = \frac{0.1686 - 0.2500}{0.7500} = -0.1085
+\end{align}
+
+\textbf{Respuesta a la Pregunta Orientadora 2:} La métrica de Karp-Flatt presenta una tendencia ascendente al incrementar $N$ (desde $-0.4220$ hasta $-0.1085$). Debido a la ausencia de *shuffle* en T1, la pérdida de eficiencia se atribuye exclusivamente a la **sobrecarga de coordinación del motor de ejecución** (planificación de tareas por el Driver, serialización y arranque de hilos) más que a barreras algorítmicas \cite{karp1990}.
+
+% ==========================================
+% SECCIÓN 5: PROPUESTA DE INTEGRACIÓN AL PFC
+% ==========================================
+\section{Propuesta de Integración al PFC}
+
+\subsection{Caso de Uso y Arquitectura de Integración}
+En la arquitectura del SGA BCEL, el \textbf{Módulo de Matrículas} ejecuta búsquedas masivas sobre expedientes estudiantiles. Se diseña un punto de integración asíncrono en la capa de procesamiento por lotes para filtrar subconjuntos de datos antes de generar los listados de matriculados por período.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.85\textwidth]{fig_speedup.png}
+\caption{Aceleración experimental observada por transformación ($N=4$ ejecutores) centrada en T1.}
+\label{fig:speedup}
+\end{figure}
+
+% ==========================================
+% SECCIÓN 6: DIMENSIONAMIENTO Y VIABILIDAD
+% ==========================================
+\section{Dimensionamiento y Viabilidad}
+
+Para calcular el umbral de volumen a partir del cual Apache Spark supera a la ejecución secuencial en pandas, se modela el tiempo secuencial $T_{\text{sec}}(n) = \alpha n$ y el tiempo distribuido $T_{\text{dist}}(n) = \beta + \gamma \frac{n}{N}$, donde $\beta$ engloba el \textit{overhead} de inicialización del clúster \cite{karp1990}:
+
+\begin{equation}
+n^* = \frac{\beta}{\alpha - \frac{\gamma}{N}}, \quad \text{válido si } \alpha > \frac{\gamma}{N}
+\label{eq:umbral}
+\end{equation}
+
+Estimando los parámetros a partir de las mediciones del entorno ($\alpha = 1.17 \times 10^{-6}$ \si{\second}/reg, $\beta = 1.65$ \si{\second}, $\gamma = 2.0 \times 10^{-7}$ \si{\second}/reg y $N=4$ ejecutores):
+
+\begin{equation}
+n^* = \frac{1.65}{1.17 \times 10^{-6} - \frac{2.0 \times 10^{-7}}{4}} = \frac{1.65}{1.17 \times 10^{-6} - 5.0 \times 10^{-8}} \approx 1,473,214 \text{ registros}
+\end{equation}
+
+\textbf{Respuesta a la Pregunta Orientadora 3 y 4:} La integración de filtrado distribuido con Spark resulta rentable a partir de **1.47 millones de registros**. Por debajo de este umbral, el *overhead* de arranque de la sesión ($\beta = 1.65$ s) penaliza el tiempo total, siendo más eficiente ejecutar cláusulas `WHERE` indexadas en PostgreSQL.
+
+% ==========================================
+% SECCIÓN 7: POSTURA CRÍTICA Y ALTERNATIVAS
+% ==========================================
+\section{Postura Crítica y Alternativas Descartadas}
+Apache Spark demuestra un rendimiento óptimo en T1 gracias a la ausencia de *shuffle* de red \cite{zaharia2016}. Se evaluaron y descartaron dos alternativas:
+\begin{enumerate}
+    \item \textbf{Pandas en un Servidor dedicado:} Presenta cuellos de botella por memoria RAM al escalar el volumen de datos.
+    \item \textbf{Polars (Rust):} Eficiente en procesamiento monopuesto, pero carece de soporte nativo para clústeres distribuidos multinodo.
+\end{enumerate}
+
+% ==========================================
+% SECCIÓN 8: CONCLUSIONES
+% ==========================================
+\section{Conclusiones}
+\begin{enumerate}
+    \item La Transformación T1 alcanzó la mayor aceleración experimental del sistema ($5.93\times$) con 4 ejecutores, al ser una operación de filtrado sin intercambio de datos entre nodos.
+    \item La métrica de Karp-Flatt confirmó que la no escalabilidad es provocado por el costo fijo de coordinación y despacho de tareas del Driver.
+    \item La integración distribuida en el Módulo de Matrículas se justifica a partir de $1.47$ millones de registros, optimizando la extracción de subconjuntos de datos.
+\end{enumerate}
+
+% ==========================================
+% SECCIÓN 9: DECLARACIÓN DE IA GENERATIVA
+% ==========================================
+\section*{Declaración de Uso de Inteligencia Artificial Generativa}
+Se utilizó la herramienta de inteligencia artificial generativa Gemini exclusivamente para apoyo en la revisión tipográfica de la plantilla en LaTeX, estructuración de ecuaciones numeradas y formato del archivo BibTeX. Todos los análisis cuantitativos, interpretaciones de datos y propuestas de diseño fueron elaborados íntegramente por la autora.
+
+% ==========================================
+% SECCIÓN 10: REFERENCIAS
+% ==========================================
+\printbibliography
+
+\end{document}
